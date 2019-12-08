@@ -1,6 +1,7 @@
 ﻿using HuffmanCoding.Entities;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace HuffmanCoding.Helper
@@ -10,8 +11,8 @@ namespace HuffmanCoding.Helper
         public static void FillPriorityQueue(ref PQueue<HuffmanNode> q, Dictionary<char, int> fTable)
         {
             var enumerator = fTable.GetEnumerator();
-
-            for (int i = 0; i < fTable.Count; i++)
+            
+            while (enumerator.MoveNext())
             {
                 HuffmanNode hn = new HuffmanNode();
 
@@ -23,7 +24,7 @@ namespace HuffmanCoding.Helper
 
                 q.Add(hn);
 
-                enumerator.MoveNext();
+                //enumerator.MoveNext();
 
             }
         }
@@ -52,11 +53,42 @@ namespace HuffmanCoding.Helper
             }
         }
 
-        public static Dictionary<char, string> GenerateHuffmanCodeTable(Dictionary<char, int> fTable)
+        public static void GenerateHuffmanCodeTable(ref Dictionary<char, string> huffmanCodes, ref HuffmanNode root, string s)
         {
-            var result = new Dictionary<char, string>();
 
+            if (root.Left == null && root.Right == null)
+            {
+                huffmanCodes[root.Character] = s;
 
+                return;
+            }
+
+            GenerateHuffmanCodeTable(ref huffmanCodes, ref root.Left, s + "0");
+            GenerateHuffmanCodeTable(ref huffmanCodes, ref root.Right, s + "1");
+            
+        }
+
+        public static void Compress(Dictionary<char, string> huffmanCodes, List<char> originalText, string outputFile)
+        {
+            if (File.Exists(outputFile))
+                File.Delete(outputFile);
+
+            using (FileStream f = new FileStream(outputFile, FileMode.OpenOrCreate))
+            {
+                f.Flush();
+                byte[] textBytes = new byte[1000000];
+                foreach (char letter in originalText)
+                {
+                    var codeInBytes = Encoding.UTF8.GetBytes(huffmanCodes[letter]);
+
+                    //codeInBytes.CopyTo(textBytes);
+                    
+                    foreach(var bit in codeInBytes)
+                    {
+                        f.WriteByte(bit);
+                    }
+                }
+            }
         }
     }
 }

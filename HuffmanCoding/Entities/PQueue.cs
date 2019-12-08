@@ -21,7 +21,17 @@ namespace HuffmanCoding.Entities
 
         public T Peek()
         {
-            return this.Peek();
+            return this.Top();
+        }
+
+        public void PrintQueue()
+        {
+            Console.WriteLine("QUEUE");
+            foreach(var t in this.heap)
+            {
+                if (t != null)
+                    Console.WriteLine("{0} : {1}", t.Character, t.Data);
+            }
         }
     }
 }
