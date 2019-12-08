@@ -3,3 +3,5 @@
 ################################################################################
 
 /.vs/HuffmanCoding
+/HuffmanCoding/bin/Debug/netcoreapp3.0
+/HuffmanCoding/obj
