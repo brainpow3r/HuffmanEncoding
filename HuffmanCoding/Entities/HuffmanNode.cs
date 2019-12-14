@@ -9,7 +9,7 @@ namespace HuffmanCoding.Entities
     public class HuffmanNode
     {
         public int Data;
-        public char Character;
+        public string Character;
 
         public HuffmanNode Left;
         public HuffmanNode Right;

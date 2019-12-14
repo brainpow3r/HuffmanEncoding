@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -17,16 +18,19 @@ namespace HuffmanCoding
                                 .SetBasePath(Directory.GetCurrentDirectory())
                                 .AddJsonFile("appsettings.json");
             var _config = builder.Build();
-            
+            string k = "";
 
-            List<char> _fileText = FileReader.GetCharactersFromFile(_config.GetSection("DataFile").Value);
-            Console.WriteLine("Total symbols: {0}", _fileText.Count);
+            k = PromptUser_Parameter();
+            Console.WriteLine("k is {0}", k);
+
+            byte[] _fileText = FileReader.GetCharactersFromFile(_config.GetSection("DataFile").Value);
+            Console.WriteLine("Total symbols: {0}", (_fileText.Length / 8));
             Console.WriteLine("sizeOf(char): {0}", sizeof(char));
 
-            Console.WriteLine("Text byteCount: {0}", Encoding.UTF8.GetByteCount(_fileText.ToArray()));
+            Console.WriteLine("Text byteCount: {0}", _fileText.Length);
 
-            Dictionary<char, int> _frequencyTable = FileReader.ConstructFrequencyTable(_fileText);
-            foreach(var entry in _frequencyTable)
+            Dictionary<string, int> _frequencyTable = FileReader.ConstructFrequencyTable(_fileText, int.Parse(k));
+            foreach (var entry in _frequencyTable)
             {
                 Console.WriteLine("{0} : {1}", entry.Key, entry.Value);
             }
@@ -34,22 +38,34 @@ namespace HuffmanCoding
             Utils.FillPriorityQueue(ref q, _frequencyTable);
 
             HuffmanNode root = null;
-            Dictionary<char, string> huffmanCodes = new Dictionary<char, string>();
+            Dictionary<string, BitArray> huffmanCodes = new Dictionary<string, BitArray>();
 
             Utils.ConstructHuffmanTree(ref root, q);
             Utils.GenerateHuffmanCodeTable(ref huffmanCodes, ref root, string.Empty);
 
+            Console.WriteLine("Code lengths: ");
+            foreach(var pair in huffmanCodes)
+            {
+                Console.WriteLine("Key: {0}; Code: {1}; Length: {2};", pair.Key, pair.Value, pair.Value.Count);
+            }
+
             string outputDir = _config.GetSection("OutputDirectory").Value;
             string resultsPath = Path.Combine(outputDir, "results.txt");
 
-            Utils.Compress(huffmanCodes, _fileText, resultsPath);
+            Utils.Compress(huffmanCodes, _frequencyTable, _fileText, resultsPath);
+            Utils.Decompress(resultsPath, root, int.Parse(k));
 
             var files = Directory.GetFiles(_config.GetSection("OutputDirectory").Value);
             var results = new FileInfo(files[0]);
-            var original = new FileInfo(files[1]);
 
             Console.WriteLine("Reuslts File: {0}; Size: {1}", results.Name, results.Length);
-            //Console.WriteLine("File: {0}; Size: {1}", original.Name, originalfileSize);
         }
+        public static string PromptUser_Parameter()
+        {
+            Console.Write("Enter desire value of k: ");
+            return Console.ReadLine();
+        }
+    
     }
+
 }
