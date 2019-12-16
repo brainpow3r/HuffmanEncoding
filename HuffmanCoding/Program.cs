@@ -43,12 +43,6 @@ namespace HuffmanCoding
             Utils.ConstructHuffmanTree(ref root, q);
             Utils.GenerateHuffmanCodeTable(ref huffmanCodes, ref root, string.Empty);
 
-            Console.WriteLine("Code lengths: ");
-            foreach(var pair in huffmanCodes)
-            {
-                Console.WriteLine("Key: {0}; Code: {1}; Length: {2};", pair.Key, pair.Value, pair.Value.Count);
-            }
-
             string outputDir = _config.GetSection("OutputDirectory").Value;
             string resultsPath = Path.Combine(outputDir, "results.txt");
 
