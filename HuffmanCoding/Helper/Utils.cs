@@ -169,7 +169,9 @@ namespace HuffmanCoding.Helper
 
         public static void Decompress(FileInfo inputFile)
         {
-            Console.WriteLine("Starting decompression...\n");
+            Stopwatch stopwacth = new Stopwatch();
+            stopwacth.Start();
+            Console.WriteLine("Starting decompression...");
 
             DecompressionInfo di = new DecompressionInfo();
             HuffmanNode root = null;
@@ -235,6 +237,8 @@ namespace HuffmanCoding.Helper
             outputFile = Path.Combine(inputFile.DirectoryName, outputFile);
             File.WriteAllBytes(outputFile, bytesToWrite);
 
+            stopwacth.Stop();
+            Console.WriteLine($"Decompression finished in: {stopwacth.ElapsedMilliseconds}");
             Console.WriteLine("Ending decompression...\n");
 
         }

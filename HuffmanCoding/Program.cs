@@ -43,12 +43,13 @@ namespace HuffmanCoding
                 string resultsPath = Path.Combine(_config.GetSection("CompressedFilesDirectory").Value, $"{wl.ToString()}_"+fileToCompress.Name + ".ggjs");
                 FileInfo compressedFileInfo = new FileInfo(resultsPath);
 
+                Utils.Compress(huffmanCodes, _frequencyTable, _fileText, resultsPath, leftoverBits);
+
                 Console.WriteLine("Original file size and compressed file size: \t{0} -- {1}", fileToCompress.Length, compressedFileInfo.Length);
                 Console.WriteLine("Word length: {0}", wl);
                 double compressionRate = (double)compressedFileInfo.Length / fileToCompress.Length;
                 Console.WriteLine("Compression rate: {0}", compressionRate);
 
-                Utils.Compress(huffmanCodes, _frequencyTable, _fileText, resultsPath, leftoverBits);
             }
             
             var filesToDecompress = Directory.GetFiles(_config.GetSection("CompressedFilesDirectory").Value);
