@@ -19,8 +19,48 @@ namespace HuffmanCoding
                                 .AddJsonFile("appsettings.json");
             var _config = builder.Build();
             
+            /*TEST*/
+            for (int wl = 2; wl <= 16; wl++)
+            {
+                string testFileName = "test2.txt";
+                testFileName = Path.Combine(_config.GetSection("DataFileDir").Value, testFileName);
+                FileInfo fileToCompress = new FileInfo(testFileName);
 
-            while (true)
+                byte[] _fileText = FileReader.GetCharactersFromFile(fileToCompress.FullName);
+                Dictionary<string, int> _frequencyTable = new Dictionary<string, int>();
+                string leftoverBits = null;
+                (_frequencyTable, leftoverBits) = FileReader.ConstructFrequencyTable(_fileText, wl);
+
+                PQueue<HuffmanNode> q = new PQueue<HuffmanNode>(_frequencyTable.Count);
+                Utils.FillPriorityQueue(ref q, _frequencyTable);
+
+                HuffmanNode root = null;
+                Dictionary<string, BitArray> huffmanCodes = new Dictionary<string, BitArray>();
+
+                Utils.ConstructHuffmanTree(ref root, q);
+                Utils.GenerateHuffmanCodeTable(ref huffmanCodes, ref root, string.Empty);
+
+                string resultsPath = Path.Combine(_config.GetSection("CompressedFilesDirectory").Value, $"{wl.ToString()}_"+fileToCompress.Name + ".ggjs");
+                FileInfo compressedFileInfo = new FileInfo(resultsPath);
+
+                Console.WriteLine("Original file size and compressed file size: \t{0} -- {1}", fileToCompress.Length, compressedFileInfo.Length);
+                Console.WriteLine("Word length: {0}", wl);
+                double compressionRate = (double)compressedFileInfo.Length / fileToCompress.Length;
+                Console.WriteLine("Compression rate: {0}", compressionRate);
+
+                Utils.Compress(huffmanCodes, _frequencyTable, _fileText, resultsPath, leftoverBits);
+            }
+            
+            var filesToDecompress = Directory.GetFiles(_config.GetSection("CompressedFilesDirectory").Value);
+            foreach(string file in filesToDecompress)
+            {
+                FileInfo fileToDecompress = new FileInfo(file);
+                Utils.Decompress(fileToDecompress);
+            }
+
+
+            /*TEST*/
+            while (false)
             {
                 string userInput = "";
                 Console.WriteLine("Enter 1 for compression\nEnter 2 for Decompression\nEnter 'e' to exit");

@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -78,7 +79,9 @@ namespace HuffmanCoding.Helper
 
         public static void Compress(Dictionary<string, BitArray> huffmanCodes, Dictionary<string, int> _frequencyTable, byte[] originalText, string outputFile, string leftoverBits)
         {
-            Console.WriteLine("Starting compression...\n");
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+            Console.WriteLine("Starting compression...");
             int wordLength = huffmanCodes.Keys.First().Length;
             int i = 0;
             DecompressionInfo decInfo = ConstructDecompressionInfoObject(_frequencyTable, (short)wordLength, leftoverBits);
@@ -158,6 +161,8 @@ namespace HuffmanCoding.Helper
                     writer.Close();
                 }
             }
+            stopwatch.Stop();
+            Console.WriteLine("Compression finished in: {0}", stopwatch.ElapsedMilliseconds);
 
             Console.WriteLine("Ending compression...\n");
         }
