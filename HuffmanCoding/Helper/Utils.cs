@@ -81,7 +81,7 @@ namespace HuffmanCoding.Helper
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
-            Console.WriteLine("Starting compression...");
+            Console.WriteLine("\nStarting compression...");
             int wordLength = huffmanCodes.Keys.First().Length;
             int i = 0;
             DecompressionInfo decInfo = ConstructDecompressionInfoObject(_frequencyTable, (short)wordLength, leftoverBits);
@@ -164,7 +164,7 @@ namespace HuffmanCoding.Helper
             stopwatch.Stop();
             Console.WriteLine("Compression finished in: {0}", stopwatch.ElapsedMilliseconds);
 
-            Console.WriteLine("Ending compression...\n");
+            Console.WriteLine("Ending compression...");
         }
 
         public static void Decompress(FileInfo inputFile)
