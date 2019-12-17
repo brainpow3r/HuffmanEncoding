@@ -76,8 +76,13 @@ namespace HuffmanCoding.Helper
             
         }
 
-        public static void Compress(Dictionary<string, BitArray> huffmanCodes, Dictionary<string, int> _frequencyTable, byte[] originalText, string outputFile)
+        public static void Compress(Dictionary<string, BitArray> huffmanCodes, Dictionary<string, int> _frequencyTable, byte[] originalText, string outputFile, string leftoverBits)
         {
+            Console.WriteLine("Starting compression...\n");
+            int wordLength = huffmanCodes.Keys.First().Length;
+            int i = 0;
+            DecompressionInfo decInfo = ConstructDecompressionInfoObject(_frequencyTable, (short)wordLength, leftoverBits);
+            
             if (File.Exists(outputFile))
                 File.Delete(outputFile);
 
@@ -88,64 +93,120 @@ namespace HuffmanCoding.Helper
                 codeLength += _frequencyTable[pair.Key] * pair.Value.Length;
             }
 
-            //Console.WriteLine("Code length in bits: {0}", codeLength);
-
-            bool[] textBytes = new bool[codeLength];
             var textBitsList = new List<bool>();
-
             BitArray compressingTextBits = new BitArray(originalText);
 
-            int wordLength = huffmanCodes.Keys.First().Length;
             
-            int i = 0;
-
-            while (i < compressingTextBits.Count)
+            if (compressingTextBits.Count % wordLength == 0)
             {
-                string wordToCompress = "";
-                for (int o = 0; o < wordLength; o++)
-                {
-                    wordToCompress += (compressingTextBits[i] == true) ? "1" : "0";
-                    i++;
-                }
 
-                var code = huffmanCodes[wordToCompress];
-                for(int j = 0; j < code.Count; j++)
+                while (i < compressingTextBits.Count)
                 {
-                    textBitsList.Add(code[j]);
-                }
+                    string wordToCompress = "";
+                    for (int o = 0; o < wordLength; o++)
+                    {
+                        wordToCompress += (compressingTextBits[i] == true) ? "1" : "0";
+                        i++;
+                    }
 
-                if (i % 100000 == 0) Console.WriteLine("Traversed {0} bits...", i);
+                    var code = huffmanCodes[wordToCompress];
+                    for(int j = 0; j < code.Count; j++)
+                    {
+                        textBitsList.Add(code[j]);
+                    }
                     
+                }
+
+            } else
+            {
+                while (i < compressingTextBits.Count-wordLength)
+                {
+                    string wordToCompress = "";
+                    for (int o = 0; o < wordLength; o++)
+                    {
+                        wordToCompress += (compressingTextBits[i] == true) ? "1" : "0";
+                        i++;
+                    }
+
+                    var code = huffmanCodes[wordToCompress];
+                    for (int j = 0; j < code.Count; j++)
+                    {
+                        textBitsList.Add(code[j]);
+                    }
+
+                }
             }
 
             BitArray textBits = new BitArray(textBitsList.ToArray());
-            byte[] bytesToWrite = new byte[textBits.Length / wordLength + (textBits.Length % wordLength == 0 ? 0 : 1)];
+            byte[] bytesToWrite = new byte[textBits.Length / 8 + (textBits.Length % 8 == 0 ? 0 : 1)];
+
             textBits.CopyTo(bytesToWrite, 0);
-            File.WriteAllBytes(outputFile, bytesToWrite);
+
+            using (FileStream stream = new FileStream(outputFile, FileMode.OpenOrCreate))
+            {
+                using (BinaryWriter writer = new BinaryWriter(stream))
+                {
+                    writer.Write(decInfo.SizeInBytes);
+                    writer.Write(decInfo.WordLength);
+                    writer.Write(decInfo.LeftoverBitsLength);
+                    if (decInfo.LeftoverBitsLength > 0)
+                    {
+                        writer.Write(decInfo.LeftoverBits.ToCharArray(), 0, decInfo.LeftoverBitsLength);
+                    }
+                    writer.Write(decInfo.DecompressionInfoString.ToCharArray(), 0, decInfo.DecompressionInfoString.Length);
+                    writer.Write(bytesToWrite);
+                    writer.Close();
+                }
+            }
+
+            Console.WriteLine("Ending compression...\n");
         }
 
-        public static void Decompress(string inputFile, HuffmanNode codeTreeRoot, int wordLength)
+        public static void Decompress(FileInfo inputFile)
         {
-            byte[] fileBytes = File.ReadAllBytes(inputFile);
+            Console.WriteLine("Starting decompression...\n");
+
+            DecompressionInfo di = new DecompressionInfo();
+            HuffmanNode root = null;
+            HuffmanNode iteratedNode = null;
+            byte[] fileBytes = null;
+            int bytesOfDataToSkip = 0;
+
+            using (FileStream stream = new FileStream(inputFile.FullName, FileMode.Open))
+            {
+                using (BinaryReader reader = new BinaryReader(stream))
+                {
+                    di.SizeInBytes = reader.ReadInt32();
+                    di.WordLength = reader.ReadInt16();
+                    di.LeftoverBitsLength = reader.ReadInt16();
+                    if (di.LeftoverBitsLength > 0)
+                    {
+                        di.LeftoverBits = Encoding.UTF8.GetString(reader.ReadBytes(di.LeftoverBitsLength));
+                    }
+                    di.DecompressionInfoString = Encoding.UTF8.GetString(reader.ReadBytes(di.SizeInBytes));
+                    bytesOfDataToSkip = (int)reader.BaseStream.Position;
+                    fileBytes = reader.ReadBytes((int)(reader.BaseStream.Length - reader.BaseStream.Position));
+                    reader.Close();
+                }
+            }
+
             List<bool> decodedTextBits = new List<bool>();
             
             BitArray bitmap = new BitArray(fileBytes);
-            HuffmanNode iteratedNode = codeTreeRoot;
+            ConstructDecompressionTree(di.DecompressionInfoString, ref root);
+
             int i = 0;
             string decodedText = "";
-
+            iteratedNode = root;
 
             while(i < bitmap.Count)
             {
                 if(iteratedNode.Left == null && iteratedNode.Right == null)
                 {
-                    decodedText += iteratedNode.Character;
-                    foreach(var bit in iteratedNode.Character)
-                    {
-                        decodedTextBits.Add((bit.Equals('1') ? true : false));
-                    }
-                    //Console.WriteLine("decoded char: {0}", iteratedNode.Character);
-                    iteratedNode = codeTreeRoot;
+                    decodedTextBits.AddRange(StringToBitArray(iteratedNode.Character));
+                    
+                    // decoded one symbol, return tree node to root
+                    iteratedNode = root;
                     continue;
                 } else
                 {
@@ -156,17 +217,24 @@ namespace HuffmanCoding.Helper
                 }
                 i++;
 
-                if (i % 100000 == 0) Console.WriteLine("Traversed {0} bits...", i);
             }
 
-            BitArray rrr = new BitArray(decodedTextBits.ToArray());
-            byte[] bytesToWrite = new byte[rrr.Length / wordLength + (rrr.Length % wordLength == 0 ? 0 : 1)];
-            rrr.CopyTo(bytesToWrite, 0);
-            decodedText = Encoding.ASCII.GetString(bytesToWrite);
+            if (di.LeftoverBitsLength > 0)
+                decodedTextBits.AddRange(StringToBitArray(di.LeftoverBits));
 
-            Console.WriteLine("Decoded text: {0}", decodedText);
+            BitArray tempTextBitsArray = new BitArray(decodedTextBits.ToArray());
+            byte[] bytesToWrite = new byte[tempTextBitsArray.Length / 8 + (tempTextBitsArray.Length % 8 == 0 ? 0 : 1)];
+            tempTextBitsArray.CopyTo(bytesToWrite, 0);
+            decodedText = Encoding.ASCII.GetString(bytesToWrite);
+            string outputFile = $"dec_{inputFile.Name.Substring(0, inputFile.Name.Length - 5)}";
+            outputFile = Path.Combine(inputFile.DirectoryName, outputFile);
+            File.WriteAllBytes(outputFile, bytesToWrite);
+
+            Console.WriteLine("Ending decompression...\n");
+
         }
-        public static string KeyToString(BitArray arr)
+
+        public static string BitArrayToString(BitArray arr)
         {
             string s = "";
 
@@ -176,6 +244,60 @@ namespace HuffmanCoding.Helper
 
             return s;
         }
+
+        public static bool[] StringToBitArray(string str)
+        {
+            bool[] arr = new bool[str.Length];
+
+            for (int i = 0; i < str.Length; i++)
+            {
+                arr[i] = (str[i].Equals('1')) ? true : false;
+            }
+
+            return arr;
+        }
+
+        public static DecompressionInfo ConstructDecompressionInfoObject (Dictionary<string, int> _frequencyTable, short wl, string leftoverBits)
+        {
+            string info = "";
+
+            foreach(var pair in _frequencyTable)
+            {
+                string segment = "";
+                segment = pair.Key + ':' + pair.Value.ToString() + ';';
+                info += segment;
+            }
+            int size = info.Length;
+            short lb_length = 0;
+            if (leftoverBits != null)
+                lb_length = (short)leftoverBits.Length;
+            
+
+            return new DecompressionInfo(size, info, wl, leftoverBits, lb_length);
+        }
+
+        public static void ConstructDecompressionTree(string decompressionInfoString, ref HuffmanNode root)
+        {
+
+            Dictionary<string, int> frequencyTable = new Dictionary<string, int>();
+
+            // remove last ';' symbol from decompression info string so it doesn't fuck up Split()
+            decompressionInfoString = decompressionInfoString.Trim().Substring(0, decompressionInfoString.Length - 1);
+            var segments = decompressionInfoString.Split(';');
+            foreach(var segment in segments)
+            {
+                var split = segment.Split(':');
+                frequencyTable[split[0]] = int.Parse(split[1]);
+            }
+
+            PQueue<HuffmanNode> q = new PQueue<HuffmanNode>(frequencyTable.Count);
+            FillPriorityQueue(ref q, frequencyTable);
+
+            ConstructHuffmanTree(ref root, q);
+            
+        }
+
+
     }
 
     

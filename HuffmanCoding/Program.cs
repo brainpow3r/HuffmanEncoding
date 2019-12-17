@@ -18,45 +18,94 @@ namespace HuffmanCoding
                                 .SetBasePath(Directory.GetCurrentDirectory())
                                 .AddJsonFile("appsettings.json");
             var _config = builder.Build();
-            string k = "";
+            
 
-            k = PromptUser_Parameter();
-            Console.WriteLine("k is {0}", k);
-
-            byte[] _fileText = FileReader.GetCharactersFromFile(_config.GetSection("DataFile").Value);
-            Console.WriteLine("Total symbols: {0}", (_fileText.Length / 8));
-            Console.WriteLine("sizeOf(char): {0}", sizeof(char));
-
-            Console.WriteLine("Text byteCount: {0}", _fileText.Length);
-
-            Dictionary<string, int> _frequencyTable = FileReader.ConstructFrequencyTable(_fileText, int.Parse(k));
-            foreach (var entry in _frequencyTable)
+            while (true)
             {
-                Console.WriteLine("{0} : {1}", entry.Key, entry.Value);
+                string userInput = "";
+                Console.WriteLine("Enter 1 for compression\nEnter 2 for Decompression\nEnter 'e' to exit");
+                userInput = Console.ReadLine();
+
+                if (!userInput.Equals("1") && !userInput.Equals("2") && !userInput.Equals("e"))
+                    continue;
+
+                if (userInput.Equals("e"))
+                    break;
+
+                switch(int.Parse(userInput))
+                {
+                    case 1:
+                        {
+                            string wordLength = "";
+                            string filename = "";
+                            FileInfo fileToCompress = null;
+
+                            wordLength = PromptUser_Parameter();
+                            filename = PromptUser_FileName();
+                            filename = Path.Combine(_config.GetSection("DataFileDir").Value, filename);
+                            
+                            if (File.Exists(filename))
+                                fileToCompress = new FileInfo(filename);
+
+                            byte[] _fileText = FileReader.GetCharactersFromFile(fileToCompress.FullName);
+                            Dictionary<string, int> _frequencyTable = new Dictionary<string, int>();
+                            string leftoverBits = null;
+                            (_frequencyTable, leftoverBits) = FileReader.ConstructFrequencyTable(_fileText, int.Parse(wordLength));
+
+                            PQueue<HuffmanNode> q = new PQueue<HuffmanNode>(_frequencyTable.Count);
+                            Utils.FillPriorityQueue(ref q, _frequencyTable);
+
+                            HuffmanNode root = null;
+                            Dictionary<string, BitArray> huffmanCodes = new Dictionary<string, BitArray>();
+
+                            Utils.ConstructHuffmanTree(ref root, q);
+                            Utils.GenerateHuffmanCodeTable(ref huffmanCodes, ref root, string.Empty);
+
+                            string resultsPath = Path.Combine(_config.GetSection("DataFileDir").Value, fileToCompress.FullName+".ggjs");
+
+                            Utils.Compress(huffmanCodes, _frequencyTable, _fileText, resultsPath, leftoverBits);
+                        }
+                        break;
+                    case 2:
+                        {
+                            string filename = "";
+                            FileInfo fileToDecompress = null;
+
+                            filename = PromptUser_FileName();
+                            filename = Path.Combine(_config.GetSection("DataFileDir").Value, filename);
+
+                            if (File.Exists(filename))
+                                fileToDecompress = new FileInfo(filename);
+
+                            Utils.Decompress(fileToDecompress);
+
+                            var files = Directory.GetFiles(_config.GetSection("OutputDirectory").Value);
+                            var results = new FileInfo(files[0]);
+
+                            Console.WriteLine("Reuslts File: {0}; Size: {1}", results.Name, results.Length);
+                        }
+                        break;
+                    default:
+                        {
+
+                        }
+                        break;
+                }
             }
-            PQueue<HuffmanNode> q = new PQueue<HuffmanNode>(_frequencyTable.Count);
-            Utils.FillPriorityQueue(ref q, _frequencyTable);
+            
 
-            HuffmanNode root = null;
-            Dictionary<string, BitArray> huffmanCodes = new Dictionary<string, BitArray>();
+            
 
-            Utils.ConstructHuffmanTree(ref root, q);
-            Utils.GenerateHuffmanCodeTable(ref huffmanCodes, ref root, string.Empty);
-
-            string outputDir = _config.GetSection("OutputDirectory").Value;
-            string resultsPath = Path.Combine(outputDir, "results.txt");
-
-            Utils.Compress(huffmanCodes, _frequencyTable, _fileText, resultsPath);
-            Utils.Decompress(resultsPath, root, int.Parse(k));
-
-            var files = Directory.GetFiles(_config.GetSection("OutputDirectory").Value);
-            var results = new FileInfo(files[0]);
-
-            Console.WriteLine("Reuslts File: {0}; Size: {1}", results.Name, results.Length);
         }
         public static string PromptUser_Parameter()
         {
-            Console.Write("Enter desire value of k: ");
+            Console.Write("Enter word length: ");
+            return Console.ReadLine();
+        }
+
+        public static string PromptUser_FileName()
+        {
+            Console.Write("Enter filename to compress: ");
             return Console.ReadLine();
         }
     
