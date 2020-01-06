@@ -19,49 +19,7 @@ namespace HuffmanCoding
                                 .AddJsonFile("appsettings.json");
             var _config = builder.Build();
             
-            /*TEST*/
-            /*for (int wl = 2; wl <= 16; wl++)
-            {
-                string testFileName = "test2.txt";
-                testFileName = Path.Combine(_config.GetSection("DataFileDir").Value, testFileName);
-                FileInfo fileToCompress = new FileInfo(testFileName);
-
-                byte[] _fileText = FileReader.GetCharactersFromFile(fileToCompress.FullName);
-                Dictionary<string, int> _frequencyTable = new Dictionary<string, int>();
-                string leftoverBits = null;
-                (_frequencyTable, leftoverBits)
-                    = FileReader.ConstructFrequencyTable(_fileText, wl);
-
-                PQueue<HuffmanNode> q = new PQueue<HuffmanNode>(_frequencyTable.Count);
-                Utils.FillPriorityQueue(ref q, _frequencyTable);
-
-                HuffmanNode root = null;
-                Dictionary<string, BitArray> huffmanCodes = new Dictionary<string, BitArray>();
-
-                Utils.ConstructHuffmanTree(ref root, q);
-                Utils.GenerateHuffmanCodeTable(ref huffmanCodes, ref root, string.Empty);
-
-                string resultsPath = Path.Combine(_config.GetSection("CompressedFilesDirectory").Value, $"{wl.ToString()}_"+fileToCompress.Name + ".ggjs");
-                FileInfo compressedFileInfo = new FileInfo(resultsPath);
-
-                Utils.Compress(huffmanCodes, _frequencyTable, _fileText, resultsPath, leftoverBits);
-
-                Console.WriteLine("Original file size and compressed file size: \t{0} -- {1}", fileToCompress.Length, compressedFileInfo.Length);
-                Console.WriteLine("Word length: {0}", wl);
-                double compressionRate = (double)compressedFileInfo.Length / fileToCompress.Length;
-                Console.WriteLine("Compression rate: {0}", compressionRate);
-
-            }
             
-            var filesToDecompress = Directory.GetFiles(_config.GetSection("CompressedFilesDirectory").Value);
-            foreach(string file in filesToDecompress)
-            {
-                FileInfo fileToDecompress = new FileInfo(file);
-                Utils.Decompress(fileToDecompress);
-            }
-
-
-            *//*TEST*/
             while (true)
             {
                 string userInput = "";
@@ -78,34 +36,35 @@ namespace HuffmanCoding
                 {
                     case 1:
                         {
-                            string wordLength = "";
+                            string orderLevel = "";
                             string filename = "";
                             FileInfo fileToCompress = null;
 
-                            wordLength = PromptUser_Parameter();
+                            orderLevel = PromptUser_Parameter();
                             filename = PromptUser_FileName();
                             filename = Path.Combine(_config.GetSection("DataFileDir").Value, filename);
                             
                             if (File.Exists(filename))
                                 fileToCompress = new FileInfo(filename);
 
-                            byte[] _fileText = FileReader.GetCharactersFromFile(fileToCompress.FullName);
-                            Dictionary<string, int> _frequencyTable = new Dictionary<string, int>();
-                            string leftoverBits = null;
-                            (_frequencyTable, leftoverBits) = FileReader.ConstructFrequencyTable(_fileText, int.Parse(wordLength));
+                            string _fileText = FileReader.GetCharactersFromFile(fileToCompress.FullName);
+                            Dictionary<string, Dictionary<char, int>> contexts = new Dictionary<string, Dictionary<char, int>>();
+                            
+                            contexts = FileReader.ConstructFrequencyTable(_fileText, int.Parse(orderLevel));
 
-                            PQueue<HuffmanNode> q = new PQueue<HuffmanNode>(_frequencyTable.Count);
-                            Utils.FillPriorityQueue(ref q, _frequencyTable);
-
+                            Dictionary<string, PQueue<HuffmanNode>> q = new Dictionary<string, PQueue<HuffmanNode>>();
+                            Utils.FillContextsPriorityQueues(ref q, contexts);
+                            /*Utils.FillPriorityQueue(ref q, _frequencyTable);*/
                             HuffmanNode root = null;
-                            Dictionary<string, BitArray> huffmanCodes = new Dictionary<string, BitArray>();
+                            Dictionary<string, Dictionary<char, string>> huffmanCodes = new Dictionary<string, Dictionary<char, string>>();
 
-                            Utils.ConstructHuffmanTree(ref root, q);
-                            Utils.GenerateHuffmanCodeTable(ref huffmanCodes, ref root, string.Empty);
+                            Dictionary<string, HuffmanNode> contextTrees = Utils.CreateHuffmanTreesForContexts(q);
+                            //Utils.ConstructHuffmanTree(ref root, q);
+                            Utils.GenerateHuffmanCodeTablesForContexts(ref huffmanCodes, contextTrees);
 
                             string resultsPath = Path.Combine(_config.GetSection("DataFileDir").Value, fileToCompress.FullName+".ggjs");
 
-                            Utils.Compress(huffmanCodes, _frequencyTable, _fileText, resultsPath, leftoverBits);
+                            Utils.Compress(huffmanCodes, contexts, int.Parse(orderLevel), _fileText, resultsPath);
                         }
                         break;
                     case 2:

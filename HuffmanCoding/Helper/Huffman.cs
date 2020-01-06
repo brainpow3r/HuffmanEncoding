@@ -11,7 +11,7 @@ namespace HuffmanCoding.Helper
 
         public static void PrintCode(HuffmanNode root, string s)
         {
-            if (root.Left == null && root.Right == null && !string.IsNullOrEmpty(root.Character))
+            if (root.Left == null && root.Right == null && !root.Character.Equals(char.MinValue))
             {
                 Console.WriteLine(root.Character + " : " + s);
             }
