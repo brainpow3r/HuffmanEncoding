@@ -54,12 +54,12 @@ namespace HuffmanCoding
 
                             Dictionary<string, PQueue<HuffmanNode>> q = new Dictionary<string, PQueue<HuffmanNode>>();
                             Utils.FillContextsPriorityQueues(ref q, contexts);
-                            /*Utils.FillPriorityQueue(ref q, _frequencyTable);*/
+
                             HuffmanNode root = null;
                             Dictionary<string, Dictionary<char, string>> huffmanCodes = new Dictionary<string, Dictionary<char, string>>();
 
                             Dictionary<string, HuffmanNode> contextTrees = Utils.CreateHuffmanTreesForContexts(q);
-                            //Utils.ConstructHuffmanTree(ref root, q);
+
                             Utils.GenerateHuffmanCodeTablesForContexts(ref huffmanCodes, contextTrees);
 
                             string resultsPath = Path.Combine(_config.GetSection("DataFileDir").Value, fileToCompress.FullName+".ggjs");

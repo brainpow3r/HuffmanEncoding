@@ -119,8 +119,11 @@ namespace HuffmanCoding.Helper
             foreach(KeyValuePair<string, HuffmanNode> kvp in contextTrees)
             {
                 string s = "";
-                if (huffmanCodes[kvp.Key] == null)
+                if (!huffmanCodes.ContainsKey(kvp.Key))
+                {
                     huffmanCodes[kvp.Key] = new Dictionary<char, string>();
+                    
+                }
 
                 GenerateHuffmanCodeTable(huffmanCodes[kvp.Key], kvp.Value, s);
             
@@ -132,7 +135,10 @@ namespace HuffmanCoding.Helper
 
             if (root.Left == null && root.Right == null)
             {
-                huffmanCodes[root.Character] = s;
+                if (!s.Equals(""))
+                    huffmanCodes[root.Character] = s;
+                else
+                    huffmanCodes[root.Character] = "0";
                 return;
             }
 
